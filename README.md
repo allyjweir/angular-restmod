@@ -6,6 +6,8 @@ Angular Restmod  [![Build Status](https://secure.travis-ci.org/angular-platanus/
 
 TODO: Summary and Motivation
 
+Take a look at https://github.com/platanus/simple-restmod-demo for a VERY basic example.
+
 ## Breaking Changes
 
     Wait for it....
