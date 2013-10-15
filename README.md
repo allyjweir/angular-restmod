@@ -111,21 +111,22 @@ The first argument for the `$restmod` function is the resource base url, if not 
 After the url, the `$restmod` function accepts a random number of arguments that build up the mixin chain. In the example below, the mixin chain is composed of an attribute description object and a building function.
 
 ```javascript
-module('MyModule').factory('Book', function($restmod) {
-    return $restmod('/api/books', {
-        // This an argument -> behavior map used to configure each of the model attributes.
-        createdAt: { serialize: 'rails-date', ignore: true },
-        pages: { init: 0 },
-        chapters: { hasMany: 'Chapter' }
-    }, function() {
-        // This is another way of configuring the model by direct builder method calling.
-        // The following code has the same effect as the argument map above.
-        this.attrSerializer('createdAt', 'rails-date')
-            .attrIgnored('createdAt', true)
-            .attrDefault('pages', 0)
-            .hasMany('chapters', 'Chapter');
+module('MyModule')
+    .factory('Book', function($restmod) {
+        return $restmod('/api/books', {
+            // This an argument -> behavior map used to configure each of the model attributes.
+            createdAt: { serialize: 'rails-date', ignore: true },
+            pages: { init: 0 },
+            chapters: { hasMany: 'Chapter' }
+        }, function() {
+            // This is another way of configuring the model by direct builder method calling.
+            // The following code has the same effect as the argument map above.
+            this.attrSerializer('createdAt', 'rails-date')
+                .attrIgnored('createdAt', true)
+                .attrDefault('pages', 0)
+                .hasMany('chapters', 'Chapter');
+        });
     });
-});
 ```
 
 #### The model builder mixin chain
@@ -150,11 +151,15 @@ TODO: usage
 
 To setup an attribute's default value use the `init` attribute property
 
-    pages: { init: 10 }
+```javascript
+pages: { init: 10 }
+```
 
 or the `attrDefault` builder method
 
-    builder.attrDefault('pages', 10);
+```javascript
+builder.attrDefault('pages', 10);
+```
 
 If the given value is a function, it will be called every time a new object is built.
 
@@ -162,58 +167,78 @@ If the given value is a function, it will be called every time a new object is b
 
 To create a new object instance use `$build`, this will not produce any requests.
 
-    var newBook = Book.$build({ title: 'Papelucho', pages: 2000 });
+```javascript
+var newBook = Book.$build({ title: 'Papelucho', pages: 2000 });
+```
 
 To store an object changes use `$save`, depending on the object being new or not, this will produce a POST or a PUT request.
 
-    newBook.$save();
+```javascript
+newBook.$save();
+```
 
 To retrieve an object's updated information from the server use `$fetch`. Since this is an asynchronous method, the object will not be modified until the server response is received, more on this later on Asynchronous Requests and Promises. Also, an object can only be fetch if it is bound to a given url, for this to happen the object must comply with every restriction imposed by the selected url builder.
 
-    newBook.$fetch();
+```javascript
+newBook.$fetch();
+```
 
 To build and save an object all in one step use `$create`
 
-    var newBook = Book.$create({ title: 'Papelucho', pages: 2000 });
+```javascript
+var newBook = Book.$create({ title: 'Papelucho', pages: 2000 });
+```
 
 To look for an object by primary key use `$find`
 
-    var oldBook = Book.$find(1);
+```javascript
+var oldBook = Book.$find(1);
+```
 
 #### Asynchronous methods and promises
 
 Every method that produces a server request is considered asynchronous, whenever an asynchronous methods is called on an object, it's $promise property is updated with a model return promise. The model return promise passes as argument the model instance (instead of the response).
 
-    var book = Book.$find(1);
-    console.log(book) // {}
-    book.$promise.then(function() {
-        console.log(book); // { title: 'bla', pages: 10 }
-    });
+```javascript
+var book = Book.$find(1);
+console.log(book) // {}
+book.$promise.then(function() {
+    console.log(book); // { title: 'bla', pages: 10 }
+});
+```
 
 The `$then` method is also provided in every object that produces requests to allow for easy method chaining.
 
-    Book.$find(1).$then(function(_book) {
-        console.log(book); // { title: 'bla', pages: 10 }
-    });
+```javascript
+Book.$find(1).$then(function(_book) {
+    console.log(book); // { title: 'bla', pages: 10 }
+});
+```
 
 ### Seach and collections
 
 Use the `$search` method to begin a search.
 
-    // This will produce a GET request to /api/books?title=Ulises
-    result = Book.$seach({ title: 'Ulises' });
+```javascript
+// This will produce a GET request to /api/books?title=Ulises
+result = Book.$seach({ title: 'Ulises' });
+```
 
 The returned object is a **collection**, collections are extended array objects that can be used to manage a particular group of model objects. Collections receive every model class method on creation.
 
 Collections also have a `$fetch` and a `$then` method.
 
-    // The passed object is optional, if can be used to modify a single query.
-    result.$fetch({ min-pages: 10 });
+```javascript
+// The passed object is optional, if can be used to modify a single query.
+result.$fetch({ min-pages: 10 });
+```
 
 Also, collections can be specialized into new collections by calling `$search`.
 
-    // newResult is a new collection that filters by title and min-pages
-    newResult = result.$search({ 'min-pages': 10 });
+```javascript
+// newResult is a new collection that filters by title and min-pages
+newResult = result.$search({ 'min-pages': 10 });
+```
 
 Even though every method available in the model class is available in the model collections, most manipulation methods are *context sensitive*, meaning that calling $create on a collection that is bound to a given url/resource can produce a POST request to an url diferent from the base resource url. This is specially relevant when using **relations**.
 
@@ -227,19 +252,23 @@ This kind of relation generates a new foreign model collection in each of the ho
 
 Given
 
-   module('MyModule')
-     .factory('Book', function($restmod) {
-     	return $restmod('/api/books', {
-	     	authors: { hasMany: 'Author' },
-	     	chapters: { hasMany: 'Chapter' }
-	     });
-	 })
-     .factory('Chapter', function($restmod) { return $restmod(null); })
-     .factory('Author', function($restmod) { return $restmod('/api/author'); });
+```javascript
+module('MyModule')
+    .factory('Book', function($restmod) {
+        return $restmod('/api/books', {
+            authors: { hasMany: 'Author' },
+            chapters: { hasMany: 'Chapter' }
+        });
+    })
+    .factory('Chapter', function($restmod) { return $restmod(null); })
+    .factory('Author', function($restmod) { return $restmod('/api/author'); });
+```
 
 Then calling `chapters` will return a collection of `Chapter` objects, the collection will be empty until `$fetch` is called and the server returns.
 
-    var chapters = Book.find(1).chapters.$fetch();
+```javascript
+var chapters = Book.find(1).chapters.$fetch();
+```
 
 Also, `authors` will return objects bound to **api/authors/:id**, but `chapters` will produce objects bound to **api/books/1/chapters/:id** (because chapters is an anonymous resource).
 
