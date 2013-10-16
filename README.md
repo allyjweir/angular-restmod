@@ -145,7 +145,7 @@ TODO: example
 
 Abstract models are added to provide a way of holding a resusable mixin chain without the overload of building a full fledge model type.
 
-TODO: usage
+`NOT IMPLEMENTED`
 
 ### Default values
 
@@ -254,37 +254,152 @@ Given
 
 ```javascript
 module('MyModule')
-    .factory('Book', function($restmod) {
-        return $restmod('/api/books', {
-            authors: { hasMany: 'Author' },
-            chapters: { hasMany: 'Chapter' }
-        });
-    })
-    .factory('Chapter', function($restmod) { return $restmod(null); })
-    .factory('Author', function($restmod) { return $restmod('/api/author'); });
+ .factory('Book', function($restmod) {
+ 	return $restmod('/api/books', {
+     	authors: { hasMany: 'Author' },
+     	chapters: { hasMany: 'Chapter' }
+     });
+ })
+ .factory('Chapter', function($restmod) { return $restmod(null); })
+ .factory('Author', function($restmod) { return $restmod('/api/author'); });
 ```
 
-Then calling `chapters` will return a collection of `Chapter` objects, the collection will be empty until `$fetch` is called and the server returns.
+Then calling `Book.$find(1).chapters` will return a collection of `Chapter` objects, the collection will be empty until `$fetch` is called and the server returns.
 
 ```javascript
-var chapters = Book.find(1).chapters.$fetch();
+var chapters = Book.$find(1).chapters.$fetch();
 ```
 
-Also, `authors` will return objects bound to **api/authors/:id**, but `chapters` will produce objects bound to **api/books/1/chapters/:id** (because chapters is an anonymous resource).
+Also, `Book.$find(1).authors` will return objects bound to **api/authors/:id**, but `chapters` will produce objects bound to **api/books/1/chapters/:id** (because chapters is an anonymous resource).
 
-Calling $create on a relation will produce a POST request to the nested resource and will automatically add the new object to the array.
+Calling $create on a relation will produce a POST request to the nested url and will automatically add the new object to the array.
 
 #### hasOne relation
 
-TODO
+The hasOne relation generates a new foreign model instance in each of the host model instances.
 
-### Decoding / Encoding
+Given
 
-TODO
+
+```javascript
+module('MyModule')
+.factory('Book', function($restmod) {
+    return $restmod('/api/books', {
+        author: { hasOne: 'Author' }
+    });
+})
+.factory('Author', function($restmod) { return $restmod('/api/author'); });
+```
+
+Then calling `Book.$find(1).author` will return an `Author` object, bound to the book's url, the object will be empty until `$fetch` is called and the server returns.
+
+#### holdsMany relation
+
+`NOT IMPLEMENTED`
+
+#### belongsTo relation
+
+`NOT IMPLEMENTED`
+
+### Decoding / Encoding chain
+
+It's posible to register encoders and decoders for each attribute in a model. Encoders are called to transform the local value to the value sent to the server and decoders are called
+
+Encoders/decoders can be either a function that receives a value and returns a new value
+
+```javascript
+$restmod('/api/books', {
+    createdAt: { decode: function(_val) { return Date.parse(_val); } }
+});
+````
+
+or a filter name, where the `param` attribute can be used to pass a filter extra parameter.
+
+```javascript
+$restmod('/api/books', {
+    encode: { encode: 'date', param: 'YY-mm-dd' }
+});
+````
+
+Encoders/decoders can also be chained usign the `chain` option.
+
+```javascript
+Book = $restmod('/api/books', function() {
+    this.attrDecoder('title', function(_value) {
+        return _value + '_';
+    });
+}, {
+    title: { decoder: function(_value) { return '_' + _value; }, chain: true }
+});
+
+var book = Book.$find(1); // server data: { title: 'phantom' }
+book.title // decoded data: '_phantom_', both decoders are applied
+````
+
+It's also posible to register a **serializer** object for each attribute, the serializer object must provide a decode and enconde methods.
+
+A serializer can be defined at factory
+
+```javascript
+module('MyModule')
+    .factory('RailsDateSerializer', function() {
+        return {
+            encode: function(_value) { /* do something encodiful */ },
+            encode: function(_value) { /* do something dencodiful */ }
+        };
+    })
+```
+
+And then referenced at a model's definition using the `type` attribute
+
+```javascript
+$restmod('/api/books', {
+    createdAt: { type: 'RailsDate' }
+});
+```
+
+Or passed directly in the model's definition
+
+```javascript
+var serializer = {
+    decode: function() { /* ble */ },
+    encode: function() { /* bla */ }
+};
+
+$restmod('/api/books', {
+    createdAt: { type: serializer }
+});
+```
 
 ### Ignored attributes and the request mask
 
-TODO
+Attributes can be masked so they dont get sent to the server or decoded on certain actions.
+
+All actions can be masked using the boolean value of `true`
+
+```javascript
+Book = $restmod('/api/books', {
+    viewed: { init: false, ignore: true }
+});
+
+var book = Book.$create({ title: 'Mastery', viewed: true }); // sends { title: 'Mastery' }
+
+var book2 = Book.$find(1); // server sends { title: 'Rework', viewed: true }
+book2.viewed // is false since server value is ignored
+```
+
+If only some actions need to be masked, then a bitwise mask must be built with help of the `restmod.SyncMask` constant
+
+```javascript
+Book = $restmod('/api/books', {
+    createdAt: { ignore: SyncMask.ENCODE }
+});
+
+var book = Book.$find(1); // server sends { created_at: 2012-09-01 }
+book.createdAt // 2012-09-01, createdAt is set because mask is only for encoding operations.
+book.createdAt = 2013-01-01;
+book.save! // sends { }, because created at is masked from being encoded.
+```
 
 ### Callbacks
 
