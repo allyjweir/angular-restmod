@@ -40,7 +40,7 @@ module('library').factory('Book', function($restmod) {
     return $restmod('/api/books', {
         createdAt: { type: 'rails-date' }, // this requires the rails-date serializer to be registered
         chapters: { hasMany: 'Chapter' }
-    })
+    });
 });
 ```
 
@@ -49,21 +49,21 @@ And then injecting the model in any controller or service:
 ```javascript
 module('library').controller('BooksController', function($scope, Book) {
 
-    // Call to GET /api/books
+    // Calls GET /api/books
     $scope.books = Book.$search();
 
     $scope.loadBook = function(_idx) {
 
-        // Call to GET /api/books/XX
+        // Calls GET /api/books/XX
         $scope.book = this.books[_idx].$fetch();
 
-        // Call to GET /api/books/XX/chapters?active=true
+        // Calls GET /api/books/XX/chapters?active=true
         $scope.chapters = $scope.book.chapters.$search({ active: true });
     }
 
     $scope.addChapter = function(_name) {
 
-        // Call to POST /api/books/XX/chapters with data = { name: _name }
+        // Calls POST /api/books/XX/chapters with data = { name: _name }
         $scope.chapters.$create({ name: _name })
     }
 
@@ -73,9 +73,9 @@ module('library').controller('BooksController', function($scope, Book) {
 By default, api calls URLs are build using the provided REST url builder.
 
 When using the default URL builder, the api must comply with a series of basic rules:
-* Returned resources must provide a primary key or an url property.
+* Returned resources must provide a primary key.
 * Nested resource url are built by appending the nested resource partial url to the master resource url.
-* TODO: complete this list.
+* TODO: Support url property
 
 ## Configuration
 
